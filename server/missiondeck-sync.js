@@ -18,7 +18,11 @@ const https = require('https');
 const http = require('http');
 
 const MISSIONDECK_API = process.env.MISSIONDECK_URL || 'https://missiondeck.ai';
-const SYNC_ENDPOINT = `${MISSIONDECK_API}/functions/v1/mc-sync`;
+// MISSIONDECK_API_URL: direct Supabase endpoint (works while missiondeck.ai/api proxy isn't active).
+// Once nginx proxy is live on xCloud, this can be overridden to https://missiondeck.ai/api
+const MISSIONDECK_API_URL = process.env.MISSIONDECK_API_URL ||
+  'https://sqykgceibcmnmgfuioso.supabase.co/functions/v1';
+const SYNC_ENDPOINT = `${MISSIONDECK_API_URL}/mc-sync`;
 const DEBOUNCE_MS = 3000;       // wait 3s after last change before syncing
 const FULL_SYNC_INTERVAL = 300000; // full sync every 5 minutes
 
