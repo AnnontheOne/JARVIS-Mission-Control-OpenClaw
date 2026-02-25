@@ -157,4 +157,96 @@ function simpleHash(str) {
   return h.toString(36);
 }
 
-module.exports = { startMissionDeckSync };
+// ── Cloud Pull: sync cloud-created tasks back to local ────────────────────────
+
+let lastPullAt = new Date(0); // epoch = pull everything on first run
+
+/**
+ * Start polling MissionDeck cloud for tasks created/updated from the dashboard.
+ * Any cloud-originated tasks are written to the local tasks directory so the
+ * file watcher (chokidar in server/index.js) picks them up and fires
+ * task.created / task.updated → WebSocket broadcast + webhooks → Telegram.
+ *
+ * @param {object} opts
+ * @param {string} opts.missionControlDir
+ * @param {string} opts.apiKey
+ * @param {string} opts.slug             - workspace slug (from .missiondeck MISSIONDECK_SLUG)
+ * @param {number} [opts.intervalMs]     - poll interval (default 30s)
+ */
+function startCloudPull({ missionControlDir, apiKey, slug, intervalMs = 30000 }) {
+  if (!apiKey || !slug) return;
+
+  const tasksDir = path.join(missionControlDir, 'tasks');
+  if (!fs.existsSync(tasksDir)) fs.mkdirSync(tasksDir, { recursive: true });
+
+  const apiBase = (process.env.MISSIONDECK_API_URL ||
+    'https://sqykgceibcmnmgfuioso.supabase.co/functions/v1') + `/mc-api/${slug}`;
+
+  console.log(`☁️  MissionDeck cloud pull enabled — polling every ${intervalMs / 1000}s`);
+
+  // Run immediately, then on interval
+  pullCloudTasks({ tasksDir, apiKey, apiBase }).catch(() => {});
+  setInterval(() => {
+    pullCloudTasks({ tasksDir, apiKey, apiBase }).catch(() => {});
+  }, intervalMs);
+}
+
+async function pullCloudTasks({ tasksDir, apiKey, apiBase }) {
+  const cloudTasks = await fetchJson(`${apiBase}/tasks`, apiKey);
+  if (!Array.isArray(cloudTasks)) return;
+
+  const since = lastPullAt;
+  lastPullAt = new Date();
+
+  for (const task of cloudTasks) {
+    if (!task || !task.id) continue;
+
+    const updatedAt = task.updated_at ? new Date(task.updated_at) : new Date(0);
+
+    // Only process tasks updated after last pull (or on first run: all cloud tasks)
+    if (updatedAt <= since) continue;
+
+    const localFile = path.join(tasksDir, `${task.id}.json`);
+    const localExists = fs.existsSync(localFile);
+
+    // Skip if this task was locally created (already in sync, avoid loop)
+    if (localExists) {
+      const local = JSON.parse(fs.readFileSync(localFile, 'utf8'));
+      // If local is newer or same age, skip (local wins)
+      const localUpdated = local.updated_at ? new Date(local.updated_at) : new Date(0);
+      if (localUpdated >= updatedAt) continue;
+    }
+
+    // Write task to local filesystem — chokidar picks this up automatically
+    fs.writeFileSync(localFile, JSON.stringify(task, null, 2));
+    console.log(`☁️  Cloud pull: ${localExists ? 'updated' : 'new'} task ${task.id} — "${task.title}"`);
+  }
+}
+
+function fetchJson(url, apiKey) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(url);
+    const lib = parsed.protocol === 'https:' ? https : http;
+    const options = {
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      timeout: 15000,
+    };
+    const req = lib.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); }
+        catch (e) { resolve(null); }
+      });
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Pull timeout')); });
+    req.end();
+  });
+}
+
+module.exports = { startMissionDeckSync, startCloudPull };
