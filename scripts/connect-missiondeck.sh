@@ -15,6 +15,8 @@ BOLD='\033[1m'
 NC='\033[0m'
 
 MISSIONDECK_URL="${MISSIONDECK_URL:-https://missiondeck.ai}"
+# API base: Supabase direct URL (works now). Override once missiondeck.ai proxy is configured.
+MISSIONDECK_API_URL="${MISSIONDECK_API_URL:-https://sqykgceibcmnmgfuioso.supabase.co/functions/v1}"
 MC_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG_FILE="$MC_DIR/.mission-control/config.yaml"
 
@@ -27,7 +29,7 @@ echo ""
 echo -e "${YELLOW}Checking cloud API availability...${NC}"
 STATUS_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
   --max-time 8 \
-  "$MISSIONDECK_URL/api/mc-api/verify" 2>/dev/null || echo "000")
+  "$MISSIONDECK_API_URL/mc-api/verify" 2>/dev/null || echo "000")
 
 CLOUD_AVAILABLE=false
 if [ "$STATUS_CODE" = "200" ] || [ "$STATUS_CODE" = "401" ]; then
@@ -86,12 +88,12 @@ if [ "$CLOUD_AVAILABLE" = true ] && [ "$API_KEY" != "REPLACE_WITH_YOUR_KEY" ]; t
 
   HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 8 \
     -H "Authorization: Bearer $API_KEY" \
-    "$MISSIONDECK_URL/api/mc-api/verify" 2>/dev/null || echo "000")
+    "$MISSIONDECK_API_URL/mc-api/verify" 2>/dev/null || echo "000")
 
   if [ "$HTTP_CODE" = "200" ]; then
     VERIFY_BODY=$(curl -s --max-time 8 \
       -H "Authorization: Bearer $API_KEY" \
-      "$MISSIONDECK_URL/api/mc-api/verify" 2>/dev/null || echo "{}")
+      "$MISSIONDECK_API_URL/mc-api/verify" 2>/dev/null || echo "{}")
     WORKSPACE_SLUG=$(echo "$VERIFY_BODY" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('slug',''))" 2>/dev/null || echo "")
     [ -n "$WORKSPACE_SLUG" ] && echo -e "  ${GREEN}✅ Verified — workspace: ${BOLD}$WORKSPACE_SLUG${NC}"
   fi
@@ -151,7 +153,7 @@ print(json.dumps({'tasks': tasks, 'agents': [], 'deleted_ids': [], 'client_versi
       -H "Authorization: Bearer $API_KEY" \
       -H "Content-Type: application/json" \
       -d "$PAYLOAD" \
-      "$MISSIONDECK_URL/api/mc-sync" 2>/dev/null || echo "000")
+      "$MISSIONDECK_API_URL/mc-sync" 2>/dev/null || echo "000")
 
     if [ "$SYNC_CODE" = "200" ]; then
       echo -e "  ${GREEN}✅ $TASK_COUNT tasks synced${NC}"
