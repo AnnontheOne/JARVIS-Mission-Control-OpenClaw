@@ -751,6 +751,39 @@ app.put('/api/agents/:id', async (req, res) => {
     }
 });
 
+
+// POST /api/agents/:id/context — agent self-reports context window usage
+// Called from agent heartbeat: POST { used, total, model }
+app.post('/api/agents/:id/context', async (req, res) => {
+    try {
+        const { used, total, model } = req.body;
+        const agentId = req.params.id;
+        const agentFile = `agents/${agentId}.json`;
+
+        // Load existing agent or start fresh
+        let agent = {};
+        try { agent = await readJsonFile(agentFile); } catch (e) {}
+
+        agent.id = agentId;
+        agent.context = {
+            used:       used  || 0,
+            total:      total || 200000,
+            pct:        total ? Math.round((used / total) * 100) : 0,
+            model:      model || agent.model || 'unknown',
+            updated_at: new Date().toISOString(),
+        };
+        agent.last_active = new Date().toISOString();
+
+        await writeJsonFile(agentFile, agent);
+        broadcast('agent.updated', agent);
+        triggerWebhooks('agent.updated', agent);
+
+        res.json({ ok: true, context: agent.context });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // --- HUMANS ---
 
 app.get('/api/humans', async (req, res) => {
