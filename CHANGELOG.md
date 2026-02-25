@@ -5,6 +5,17 @@ All notable changes to JARVIS Mission Control will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-02-25
+
+### Fixed
+- **Cloud sync 405 error handled gracefully** — `connect-missiondeck.sh` now checks API availability before proceeding. If the cloud sync endpoint returns 405/404/timeout, it prints a clear explanation ("cloud API not yet deployed") and saves config locally instead of failing silently or confusing agents.
+- **Corrected cloud dashboard URL** — Updated from `/workspace/slug` to `/mission-control/slug` in the connect script output.
+
+### Changed
+- **Cloud setup marked "Coming Soon"** in SKILL.md, CLAUDE.md adoption table, and `skill/references/2-missiondeck-connect.md` until the MissionDeck sync API is deployed.
+- **`2-missiondeck-connect.md`** — Added status banner at top, added "What To Do Right Now" section directing agents to local mode and `skills/deployment.md` for remote access.
+- **`connect-missiondeck.sh`** — Proactive HTTP status check before prompting for API key; offers clean exit if cloud unavailable; no longer errors on sync failure.
+
 ## [1.0.3] - 2026-02-25
 
 ### Added
