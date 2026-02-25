@@ -66,17 +66,17 @@ clawhub install openclaw-token-optimizer
 | Mode | What You Need | Dashboard URL | Setup Time |
 |------|--------------|--------------|------------|
 | **👁️ Demo** | Nothing | [`missiondeck.ai/mission-control/demo`](https://missiondeck.ai/mission-control/demo) | 0 minutes |
-| **☁️ Cloud (MissionDeck)** | Free API key from missiondeck.ai/auth | `https://missiondeck.ai/mission-control/your-slug` | 5 minutes |
+| **☁️ Cloud (MissionDeck)** | Free API key *(sync coming soon)* | `https://missiondeck.ai/mission-control/your-slug` | 5 min (when live) |
 | **🖥️ Self-Hosted (local)** | Node.js ≥18 + Git | `http://localhost:3000` | 10 minutes |
 
 ---
 
-## ☁️ Option A — Cloud Setup (Recommended)
+## ☁️ Option A — Cloud Setup (Coming Soon)
 
-No server required. Your dashboard is live on the internet.
+> ⚠️ **Cloud sync is not yet deployed.** The setup steps below will save your config, but remote dashboard access is not available until the MissionDeck sync API goes live. Your local setup (`http://localhost:3000`) works perfectly now.
 
 **What you need:**
-- A free account at [missiondeck.ai/auth](https://missiondeck.ai/auth) — no credit card required
+- A free account at [missiondeck.ai/settings/api-keys](https://missiondeck.ai/settings/api-keys) — no credit card required
 - An API key from your workspace settings
 
 **Steps:**
