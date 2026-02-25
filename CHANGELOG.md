@@ -1,35 +1,40 @@
 # Changelog
 
+## [1.0.6] - 2026-02-25
+### Added
+- **Context window meter in agent cards** — each agent card shows live context usage as a bar
+  - Green (<60%), Amber (60-80%), Red (>80%) with pulsing border when critical
+- `POST /api/agents/:id/context` endpoint — agents self-report context window stats
+- `scripts/report-context.sh` — script agents call from heartbeat to push context data
+- `public/mc-board/css/context-meter.css` — context bar styles
+- `public/mc-board/js/context-patch.js` — patches renderAgents() to inject context meters
+
+### How agents report context
+Agents call `report-context.sh` from their OpenClaw heartbeat:
+```
+exec: ./scripts/report-context.sh <agent_id> <tokens_used> <tokens_total> <model>
+```
+Data appears on the MC board within 30 seconds (next board refresh).
+
 ## [1.0.5] - 2026-02-25
 ### Added
-- **Bidirectional cloud sync**: Cloud-created tasks (from MissionDeck dashboard) now sync back to local `.mission-control/tasks/` automatically
-- `startCloudPull()` in `server/missiondeck-sync.js` — polls mc-api every 30s for tasks created/updated from the cloud
-- Cloud tasks written as local JSON files → chokidar picks them up → webhooks fire → **Telegram notifications delivered**
-- `MISSIONDECK_SLUG` env var (already written by `connect-missiondeck.sh`) used to target the correct workspace
+- Bidirectional cloud sync: cloud-created tasks sync back to local MC
+- `startCloudPull()` polls mc-api every 30s for cloud tasks
+- Cloud tasks written as local files → chokidar → Telegram notifications
 
 ## [1.0.4] - 2026-02-25
 ### Fixed
-- Cloud sync endpoint now defaults to direct Supabase URL (fixes 405 errors via missiondeck.ai proxy)
-- MISSIONDECK_API_URL env var override supported in both connect script and server sync
+- Cloud sync endpoint defaults to direct Supabase URL (fixes 405 errors)
 
 ## [1.0.3] - 2026-02-24
 ### Fixed
-- Added /verify endpoint to mc-api for API key validation
-- Fixed nginx CORS headers to include X-MC-Passcode
+- Added /verify endpoint to mc-api
+- Fixed nginx CORS headers
 
 ## [1.0.2] - 2026-02-21
 ### Fixed
 - Security patch — 10 vulnerabilities fixed
-- Dependency updates
-
-## [1.0.1] - 2026-02-10
-### Added
-- MissionDeck cloud sync integration
-- Agent auto-discovery from OpenClaw config
 
 ## [1.0.0] - 2026-02-05
 ### Added
 - Initial release
-- File-based task management
-- WebSocket real-time updates
-- Telegram bridge
