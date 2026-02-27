@@ -30,6 +30,33 @@ const POLL_INTERVAL = parseInt(process.env.POLL_INTERVAL) || 2000; // 2 seconds
 const AGENT_SYNC_INTERVAL = parseInt(process.env.AGENT_SYNC_INTERVAL) || 30000; // 30 seconds
 const AUTO_CREATE_TASKS = process.env.AUTO_CREATE_TASKS !== 'false'; // Disable with AUTO_CREATE_TASKS=false
 
+// Deduplication set for Telegram messages already forwarded to MC
+const processedTelegramMessages = new Set();
+
+/**
+ * Parse [Telegram ...] header from OpenClaw session user messages.
+ * Format: "[Telegram SenderName (@handle) id:SENDER_ID +Xs YYYY-MM-DD HH:MM UTC] message\n[message_id: MSG_ID]"
+ * Group format may include: "id:-1003748058940 topic:158"
+ * Returns { sender, chatId, messageId } or null if not a Telegram message.
+ */
+function parseTelegramHeader(text) {
+    if (!text || !text.startsWith('[Telegram ')) return null;
+    try {
+        // Extract chat/group id
+        const chatIdMatch = text.match(/\bid:(-?\d+)/);
+        const chatId = chatIdMatch ? chatIdMatch[1] : 'unknown';
+        // Extract sender name (before the first parenthesis or id: token)
+        const senderMatch = text.match(/^\[Telegram\s+([^\](@]+?)(?:\s+\(@|\s+id:)/);
+        const sender = senderMatch ? senderMatch[1].trim() : 'Unknown';
+        // Extract message_id
+        const msgIdMatch = text.match(/\[message_id:\s*(\d+)\]/);
+        const messageId = msgIdMatch ? msgIdMatch[1] : String(Date.now());
+        return { sender, chatId, messageId };
+    } catch (e) {
+        return null;
+    }
+}
+
 // Auto-detect OpenClaw agents directory
 function detectAgentsDir() {
     // Priority 1: Environment variable
@@ -420,25 +447,33 @@ async function processSessionActivity(sessionId) {
                     ? msg.content.find(c => c.type === 'text')?.text || ''
                     : msg.content;
                 
-                // Check for @mentions of other agents (not self)
+                // Check for @mentions of any bot in Telegram messages — route to MC task
                 const mentions = telegramBridge.parseMentions(userContent);
-                if (mentions.length > 0 && !mentions.includes(session.agent)) {
-                    // This is a task assignment to another agent - create Mission Control task
-                    // Extract sender from message format: "Username (id): message"
-                    const senderMatch = userContent.match(/^([^(]+)\s*\([^)]+\):/);
-                    const sender = senderMatch ? senderMatch[1].trim() : 'Architect';
-                    
-                    try {
-                        await telegramBridge.createTaskFromTelegram({
-                            from: sender,
-                            message: userContent,
-                            chat_id: session.sessionKey?.includes('group') ? (process.env.MC_TELEGRAM_CHAT || 'group') : 'dm',
-                            message_id: `${Date.now()}`,
-                            timestamp: new Date().toISOString()
-                        });
-                        console.log(`[Bridge] Created task from @mention: ${telegramBridge.extractTitle(userContent)}`);
-                    } catch (err) {
-                        console.error('[Bridge] Failed to create task from @mention:', err.message);
+                if (mentions.length > 0) {
+                    // Parse [Telegram ...] header for chat_id, sender, message_id
+                    const tgHeader = parseTelegramHeader(userContent);
+                    const msgKey = tgHeader ? `${tgHeader.chatId}:${tgHeader.messageId}` : null;
+
+                    // Skip if already forwarded (deduplication)
+                    if (!msgKey || !processedTelegramMessages.has(msgKey)) {
+                        if (msgKey) processedTelegramMessages.add(msgKey);
+
+                        const sender = tgHeader ? tgHeader.sender : 'Architect';
+                        const chatId = tgHeader ? tgHeader.chatId
+                            : (session.sessionKey?.includes('group') ? (process.env.MC_TELEGRAM_CHAT || 'group') : 'dm');
+
+                        try {
+                            await telegramBridge.createTaskFromTelegram({
+                                from: sender,
+                                message: userContent,
+                                chat_id: chatId,
+                                message_id: tgHeader ? tgHeader.messageId : `${Date.now()}`,
+                                timestamp: new Date().toISOString()
+                            });
+                            console.log(`[Bridge] Created MC task from Telegram: ${telegramBridge.extractTitle(userContent)}`);
+                        } catch (err) {
+                            console.error('[Bridge] Failed to create task from Telegram mention:', err.message);
+                        }
                     }
                 }
             }

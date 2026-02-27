@@ -153,6 +153,31 @@ The result: agents and humans operate as one coordinated team, not parallel silo
 
 ---
 
+## 📨 Telegram → Mission Control Auto-Routing
+
+When a human sends a Telegram message mentioning an agent bot (e.g. `@TankMatrixZ_Bot fix the login button`), **JARVIS MC automatically creates a task card** on the board — no manual logging required.
+
+**How it works:**
+- The `agent-bridge.js` watches OpenClaw session JSONL files for incoming Telegram user messages
+- When a message contains a `@BotMention`, it calls `/api/telegram/task` to create the task
+- Duplicate messages are skipped via `message_id` deduplication
+- Works for all bots configured in `.mission-control/config/agents.json`
+
+**Configure bot → agent mapping:**
+```json
+// .mission-control/config/agents.json
+{
+  "botMapping": {
+    "@YourAgentBot": "agent-id",
+    "@AnotherBot": "another-agent"
+  }
+}
+```
+
+The bridge picks up this config automatically on startup. No restart needed after editing.
+
+---
+
 ## What Agents Can Do
 
 **Task Management**

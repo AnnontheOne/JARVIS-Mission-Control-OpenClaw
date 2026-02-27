@@ -1,3 +1,19 @@
+## [1.0.7] - 2026-02-27
+
+### Fixed
+- `agent-bridge.js`: AgentSync null-check for `soulData.skills` (was crashing on agents without skills field)
+
+### Added
+- Telegram → MC auto-routing: bridge now watches OpenClaw session JSONL files and forwards any user message mentioning a bot to `/api/telegram/task`
+- `parseTelegramHeader()`: extracts `chatId`, `sender`, `messageId` from OpenClaw Telegram session format
+- `processedTelegramMessages` Set for idempotent message deduplication
+- `skill/SKILL.md`: documents Telegram auto-routing and `agents.json` bot mapping config
+- `agents.json` bot mapping for Matrix Zion agents (oracle, tank, morpheus, shuri, keymaker)
+
+### Closes
+- Issue #42: Telegram → Mission Control task auto-routing
+
+
 # Changelog
 
 ## [1.0.6] - 2026-02-25
