@@ -225,7 +225,7 @@ function generateAgentData(agentConfig, soulData) {
         description: soulData.description || `OpenClaw agent: ${name}`,
         avatar: null,
         status: 'active',
-        skills: soulData.skills.length > 0 ? soulData.skills : ['general'],
+        skills: (soulData.skills && soulData.skills.length > 0) ? soulData.skills : ['general'],
         model: extractModelName(agentConfig.model?.primary) || 'unknown',
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
