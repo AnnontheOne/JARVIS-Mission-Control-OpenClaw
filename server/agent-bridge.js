@@ -33,6 +33,9 @@ const AUTO_CREATE_TASKS = process.env.AUTO_CREATE_TASKS !== 'false'; // Disable 
 // Deduplication set for Telegram messages already forwarded to MC
 const processedTelegramMessages = new Set();
 
+// Track read position for main (non-spawned) session JSONL files
+const mainSessionOffsets = new Map(); // filePath -> lastLineNum
+
 /**
  * Parse [Telegram ...] header from OpenClaw session user messages.
  * Format: "[Telegram SenderName (@handle) id:SENDER_ID +Xs YYYY-MM-DD HH:MM UTC] message\n[message_id: MSG_ID]"
@@ -54,6 +57,58 @@ function parseTelegramHeader(text) {
         return { sender, chatId, messageId };
     } catch (e) {
         return null;
+    }
+}
+
+/**
+ * Watch a main (non-spawned) agent session JSONL for incoming Telegram messages.
+ * Only processes lines with the [Telegram ...] prefix that mention a configured bot.
+ * Skips heartbeats, cron jobs, and system messages automatically — they don't
+ * start with "[Telegram " so they are filtered out at the prefix check.
+ */
+async function processMainSessionForTelegramTasks(filePath) {
+    const lastLine = mainSessionOffsets.get(filePath) || 0;
+    const newLines = await parseJsonlFile(filePath, lastLine);
+    if (newLines.length === 0) return;
+
+    for (const { lineNum, data } of newLines) {
+        mainSessionOffsets.set(filePath, lineNum + 1);
+
+        if (data.type !== 'message') continue;
+        const msg = data.message;
+        if (!msg || msg.role !== 'user') continue;
+
+        const rawContent = Array.isArray(msg.content)
+            ? (msg.content.find(c => c.type === 'text')?.text || '')
+            : (msg.content || '');
+
+        // Only forward messages that came from Telegram (not cron, not system)
+        if (!rawContent.startsWith('[Telegram ')) continue;
+
+        const mentions = telegramBridge.parseMentions(rawContent);
+        if (mentions.length === 0) continue;
+
+        const tgHeader = parseTelegramHeader(rawContent);
+        const msgKey = tgHeader ? `${tgHeader.chatId}:${tgHeader.messageId}` : null;
+
+        if (msgKey && processedTelegramMessages.has(msgKey)) continue;
+        if (msgKey) processedTelegramMessages.add(msgKey);
+
+        const sender = tgHeader ? tgHeader.sender : 'Architect';
+        const chatId = tgHeader ? tgHeader.chatId : 'group';
+
+        try {
+            await telegramBridge.createTaskFromTelegram({
+                from: sender,
+                message: rawContent,
+                chat_id: chatId,
+                message_id: tgHeader ? tgHeader.messageId : `${Date.now()}`,
+                timestamp: new Date().toISOString()
+            });
+            console.log(`[Bridge] MC task from main session Telegram: ${telegramBridge.extractTitle(rawContent)}`);
+        } catch (err) {
+            console.error('[Bridge] Failed to create task from main session:', err.message);
+        }
     }
 }
 
@@ -694,7 +749,11 @@ async function setupFileWatcher() {
         if (filePath.endsWith('.jsonl')) {
             const sessionId = path.basename(filePath, '.jsonl');
             if (trackedSessions.has(sessionId)) {
+                // Spawned sub-session: full activity tracking
                 await processSessionActivity(sessionId);
+            } else {
+                // Main agent session: watch for Telegram @mentions only
+                await processMainSessionForTelegramTasks(filePath);
             }
         } else if (filePath.endsWith('sessions.json')) {
             // New session might have been added

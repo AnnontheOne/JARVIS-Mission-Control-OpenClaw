@@ -1,3 +1,10 @@
+## [1.0.8] - 2026-02-27
+
+### Fixed
+- Closes #43: `agent-bridge.js` now watches main agent session JSONL files (not just spawned sub-sessions) for Telegram @mentions
+- `processMainSessionForTelegramTasks()`: reads new JSONL lines, filters on `[Telegram ...]` prefix (skips heartbeats/cron/system), creates MC tasks for bot @mentions
+- `mainSessionOffsets` Map tracks per-file read position for efficient incremental reads
+
 ## [1.0.7] - 2026-02-27
 
 ### Fixed
