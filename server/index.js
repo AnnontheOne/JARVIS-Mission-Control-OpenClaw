@@ -867,11 +867,80 @@ app.get('/api/webhooks', (req, res) => {
     res.json(list);
 });
 
+/**
+ * Validates a webhook URL against SSRF attack vectors.
+ * Blocks: private IPs, localhost, APIPA, AWS/cloud metadata, non-HTTP(S) schemes.
+ * @param {string} urlString
+ * @returns {{ valid: boolean, reason?: string }}
+ */
+function validateWebhookUrl(urlString) {
+    let parsed;
+    try {
+        parsed = new URL(urlString);
+    } catch {
+        return { valid: false, reason: 'Invalid URL format' };
+    }
+
+    // Only allow http and https
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return { valid: false, reason: `Protocol '${parsed.protocol}' is not allowed. Use http or https.` };
+    }
+
+    const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+
+    // Block localhost variants
+    const blocked = ['localhost', '127.0.0.1', '::1', '0.0.0.0', '0000:0000:0000:0000:0000:0000:0000:0001'];
+    if (blocked.includes(hostname)) {
+        return { valid: false, reason: 'Localhost addresses are not allowed' };
+    }
+
+    // Block AWS EC2 and GCP metadata endpoints
+    if (hostname === '169.254.169.254' || hostname === 'metadata.google.internal') {
+        return { valid: false, reason: 'Cloud metadata endpoints are not allowed' };
+    }
+
+    // Block private and reserved IPv4 ranges
+    const privateRanges = [
+        /^127\./, // loopback
+        /^10\./, // RFC1918
+        /^172\.(1[6-9]|2\d|3[01])\./, // RFC1918
+        /^192\.168\./, // RFC1918
+        /^169\.254\./, // APIPA / link-local
+        /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./, // CGNAT RFC6598
+        /^192\.0\.2\./, // TEST-NET-1
+        /^198\.51\.100\./, // TEST-NET-2
+        /^203\.0\.113\./, // TEST-NET-3
+    ];
+    for (const pattern of privateRanges) {
+        if (pattern.test(hostname)) {
+            return { valid: false, reason: 'Private or reserved IP ranges are not allowed' };
+        }
+    }
+
+    // Block private IPv6 ranges
+    if (
+        hostname === '::1' ||
+        hostname.startsWith('fc') ||
+        hostname.startsWith('fd') ||
+        hostname.startsWith('fe80') ||
+        hostname.startsWith('::ffff:')
+    ) {
+        return { valid: false, reason: 'Private or link-local IPv6 addresses are not allowed' };
+    }
+
+    return { valid: true };
+}
+
 app.post('/api/webhooks', (req, res) => {
     const { id, url, events } = req.body;
 
     if (!id || !url || !events) {
         return res.status(400).json({ error: 'Missing required fields: id, url, events' });
+    }
+
+    const urlCheck = validateWebhookUrl(url);
+    if (!urlCheck.valid) {
+        return res.status(400).json({ error: `Invalid webhook URL: ${urlCheck.reason}` });
     }
 
     registerWebhook(id, url, events);
