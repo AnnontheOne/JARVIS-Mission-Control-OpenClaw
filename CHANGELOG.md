@@ -1,3 +1,18 @@
+## [1.0.10] - 2026-03-02
+
+### Security — CRITICAL FIX (PR #45)
+- **SSRF via Webhook Registration** (server/index.js) — HIGH SEVERITY
+  - Added `validateWebhookUrl()` to block Server-Side Request Forgery attacks
+  - Blocks: localhost/127.0.0.1/::1/0.0.0.0
+  - Blocks: Private IPv4 (10.x, 172.16-31.x, 192.168.x, 100.64-127.x CGNAT)
+  - Blocks: AWS EC2 + GCP metadata endpoints (169.254.169.254, metadata.google.internal)
+  - Blocks: APIPA/link-local ranges (169.254.x.x)
+  - Blocks: Private IPv6 (fc::/7, fe80::/10, ::1, ::ffff:)
+  - Blocks: Reserved test ranges (192.0.2.x, 198.51.100.x, 203.0.113.x)
+  - Blocks: Non-HTTP(S) protocols (file://, ftp://, etc.)
+  - Returns HTTP 400 with descriptive error on blocked URLs
+  - Identified by Morpheus (Security Counsel) in post-v1.0.9 audit
+
 ## [v1.0.9] - 2026-03-02
 ### Security
 - Fixed 47 XSS vulnerabilities in dashboard/js/app.js — all innerHTML assignments now sanitized via DOMPurify
