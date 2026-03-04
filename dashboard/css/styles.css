@@ -3947,17 +3947,18 @@ body::after {
 .chat-panel {
     position: fixed;
     bottom: 0;
-    right: var(--spacing-xl);
-    width: 380px;
-    height: 450px;
+    /* Sit to the left of the right sidebar (280px wide) + a gap */
+    right: calc(280px + 16px); /* right sidebar is 280px wide */
+    width: 340px;
+    height: 420px;
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-bottom: none;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    z-index: 140;
+    z-index: 100; /* below slide-out panels (140) but above board */
     display: flex;
     flex-direction: column;
-    transform: translateY(calc(100% - 48px));
+    transform: translateY(calc(100% - 44px));
     transition: transform var(--transition-slow), box-shadow var(--transition-slow);
     box-shadow: var(--shadow-md);
     overflow: hidden;
