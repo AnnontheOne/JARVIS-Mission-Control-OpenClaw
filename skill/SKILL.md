@@ -14,7 +14,7 @@ metadata:
               "id": "demo",
               "kind": "link",
               "label": "👁️ Live Demo",
-              "url": "https://zion.asif.dev",
+              "url": "https://missiondeck.ai/mission-control/demo",
             },
             {
               "id": "github",
@@ -38,7 +38,7 @@ metadata:
 [![Version](https://img.shields.io/badge/version-2.0.3-brightgreen.svg)](https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw/blob/main/CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw/blob/main/LICENSE)
 
-Built by [MissionDeck.ai](https://missiondeck.ai) · [GitHub](https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw) · [Live Demo](https://zion.asif.dev)
+Built by [MissionDeck.ai](https://missiondeck.ai) · [GitHub](https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw) · [Live Demo](https://missiondeck.ai/mission-control/demo)
 
 > **Security notice:** Instruction-only skill. All commands reference open-source code on GitHub. Review before running. Nothing executes automatically.
 
@@ -90,7 +90,7 @@ CRT scanline overlay, pulse-glow on active agents, Matrix rain header accent, ty
 
 | Mode | Setup Time | Dashboard |
 |------|-----------|-----------|
-| **👁️ Demo** | 0 min | [zion.asif.dev](https://zion.asif.dev) |
+| **👁️ Demo** | 0 min | [missiondeck.ai/mission-control/demo](https://missiondeck.ai/mission-control/demo) |
 | **☁️ MissionDeck Cloud** | 5 min | missiondeck.ai |
 | **🖥️ Self-Hosted** | 10 min | localhost:3000 |
 
