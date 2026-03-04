@@ -5,19 +5,177 @@ Format: [version] — date | what changed | PR
 
 ---
 
+## [2.0.3] — 2026-03-04 | Smart Panels — Chat, Reports, Schedules
+
+**PR #73 + PR #74**
+
+### Added
+- 💬 **Mission Control Chat** — slide-out panel, real-time WebSocket, agent emojis, unread badge, @mention support
+- 📋 **Reports panel** — slide-out from header button, Reports/Logs/Archive tabs, fixed double `/api/` URL bug
+- ⏰ **Schedules panel** — slide-out from header button, shows all 14 live OpenClaw cron jobs (fixed wrong endpoint)
+- Right sidebar removed — Kanban gets full width; all panels via header buttons
+
+### Fixed
+- Smart panels not opening (mobile + desktop) — JS never added `.open` CSS class; fixed with `offsetHeight` reflow + `classList.add('open')`
+
+---
+
+## [2.0.2] — 2026-03-04 | Right Panel Fixes
+
+**PR #71**
+
+### Fixed
+- Reports "Failed to load files" — double `/api/api/` prefix bug in `api.js`
+- Resources hidden from sidebar (accessible via Settings modal)
+- Chat overflow off-screen resolved
+
+---
+
+## [2.0.1] — 2026-03-04 | Dark Mode + Getting Started Fix
+
+**PR #70**
+
+### Fixed
+- Dashboard defaulting to white/light mode — hardcoded `data-theme="dark"` on `<html>`
+- "Getting Started" modal no longer blocks Kanban when server is connected
+
+---
+
+## [2.0.0] — 2026-03-04 | Major UI Overhaul
+
+**PRs #65–#69**
+
+### Added
+- **Widget Cards** (v1.16.0) — 4 large clickable stat cards: Claude Sessions, CLI Connections, GitHub Sync, Webhook Health
+- **Enhanced Task Cards** (v1.17.0) — priority color bars, agent avatar circles, label badges, review indicator
+- **Sidebar Groups** (v1.18.0) — TEAM / INTELLIGENCE / SYSTEM collapsible sections with localStorage persistence
+- **Panel Redesign** (v1.19.0) — gradient headers, icon boxes, Orbitron titles, stat badges on all 6 panels
+- **Matrix Theme Polish** (v2.0.0) — CRT scanlines, pulse-glow on agents, Matrix rain header accent, typewriter version cursor
+
+---
+
+
+## [2.0.3] — 2026-03-04 | Smart Slide-out Panels
+
+**PR #73** — `feature/smart-panels-v2.0.3`
+**PR #74** — `fix/smart-panels-open-class`
+
+### Added
+- `dashboard/js/smart-panels.js` — new module powering three on-demand panels
+- **💬 Chat panel** — full-height slide-out from CHAT header button
+  - Real-time via WebSocket (`message.created` events)
+  - Message bubbles with per-agent emoji avatars (🔧 Tank, 🔮 Oracle, 🧠 Morpheus…)
+  - Unread badge on header button when panel is closed
+  - Send via `POST /api/messages`, receive via WS broadcast
+- **📋 Reports & Files panel** — slide-out from REPORTS header button
+  - Tabs: Reports / Logs / Archive
+  - File list with ext badge, size, date, download link
+  - Clean empty state
+- **⏰ Schedules panel** — slide-out from SCHEDULES header button
+  - Calls `/api/schedules` (was previously calling wrong endpoint `/api/queue`)
+  - Shows all OpenClaw cron jobs across all agents with agent emoji, schedule type, last run
+  - Filter: All / Active / Disabled
+- Three header action buttons replace the removed right sidebar: CHAT · REPORTS · SCHEDULES
+
+### Fixed
+- Smart panels not opening on click (PR #74): panels use `transform: translateX(100%)` by default; `.open` CSS class slides them in — `_openPanel()` was setting `display: flex` but never adding `.open`
+- `/api/schedules` now correctly returns OpenClaw cron jobs (14 real jobs); old code called `/api/queue` which only reads local queue (always empty)
+- Floating chat widget replaced by slide-out (no more viewport overflow)
+
+### Changed
+- Right sidebar (`sidebar-right`) permanently hidden (`display: none !important`) — Kanban board gets full available width
+- Old floating chat HTML replaced with stub divs to prevent JS errors from old references
+
+---
+
+## [2.0.2] — 2026-03-04 | Right Panel Bug Fixes
+
+**PR #70** — `fix/dark-mode-default-and-modal`
+**PR #71** — `fix/right-panel-and-chat`
+
+### Fixed
+- **Dark mode not defaulting**: `initTheme()` was following `prefers-color-scheme: light` system setting; now always defaults to `'dark'` regardless of OS preference
+- **Getting Started modal blocking board**: modal now only shows after 2s delay AND only when `!api.isConnected()` — server is always running so modal never fires
+- **"Failed to load files" error**: `getFiles()` in `api.js` was passing `/api/files?dir=reports` to `request()` which prepends `/api`, producing URL `/api/api/files` → 404 → catch block → "Failed to load files". Fixed to `/files?dir=...`
+- **Resources section removed from sidebar**: was displaying 0/0/0 with no inline actions — hidden from permanent view (Resources modal still accessible via Settings)
+
+---
+
+## [2.0.0] — 2026-03-04 | Matrix Theme Polish
+
+**PR #69** — `feature/matrix-theme-v2`
+
+### Added
+- Full Matrix-themed visual overhaul: neon green (#00ff41) primary accent, cyan (#00d4ff) secondary
+- Glowing card borders, terminal-style typography, animated status indicators
+- Enhanced agent avatar system with colored letter badges
+- Improved task card layout with priority indicators and label chips
+- Footer bar with live clock, activity count, version badge
+- CSS custom property system for consistent theming across all components
+- Light/dark theme toggle preserved
+
+---
+
+## [1.19.0] — 2026-03-04 | Panel Header Redesign
+
+**PR #68** — `feature/panel-header-redesign`
+
+### Added
+- Gradient panel headers across all slide-out panels (agent profile, Claude sessions, GitHub, webhooks, CLI, SOUL)
+- Large icon area, title + subtitle, stat pill badges in header
+- Unified `panel-header-gradient` design system applied to all panels
+- Close button repositioned to top-right corner
+
+---
+
+## [1.18.0] — 2026-03-04 | Sidebar Organization
+
+**PR #67** — `feature/sidebar-organization`
+
+### Added
+- Left sidebar reorganized into collapsible sections: TEAM, SYSTEM, INTEGRATIONS
+- Sticky section headers with chevron toggle
+- Each section independently collapsible with state stored in localStorage
+- SYSTEM section: Claude Sessions, CLI Console, GitHub Sync, Agent SOUL, Webhooks
+- INTEGRATIONS section: Telegram Bridge, Update Banner
+
+---
+
+## [1.17.0] — 2026-03-04 | Enhanced Task Cards
+
+**PR #66** — `feature/enhanced-task-cards`
+
+### Added
+- Redesigned Kanban task cards with left-border color coding by priority/status
+- Agent avatar chip in card footer showing assignee initials + color
+- Label chips with overflow count (`+2 more`)
+- Hover elevation effect and subtle glow
+- Card footer with due date, comment count, attachment indicator
+
+---
+
+## [1.16.0] — 2026-03-04 | Dashboard Widget Cards
+
+**PR #65** — `feature/dashboard-widget-cards`
+
+### Added
+- 4 feature widget cards below the header metrics strip:
+  - 🖥 Claude Sessions — active count, last scan time
+  - ⚡ CLI Connections — connected count
+  - 🐙 GitHub Sync — synced issue count, last sync time
+  - 🔔 Webhooks — active/circuit-open counts
+- Each card clickable to open its detail panel
+- Color-coded status dots (green = active, red = issue, grey = idle)
+
+---
+
 ## [1.15.0] — 2026-03-04 | Dashboard Aggregate Widgets
 
 **PR #63** — `feature/jarvis-v1.14.0-dashboard-widgets`
 
 ### Added
-- 4 live aggregate widgets in the dashboard header metrics strip:
-  - 🖥 **Claude** — active Claude Code session count
-  - ⚡ **CLI** — connected CLI tool count
-  - 🐙 **GitHub** — synced issue count
-  - 🔔 **Hooks** — open circuit breaker count
-- All widgets clickable (open relevant panel), color-coded, poll every 60s
-- `dashboard/js/dashboard-widgets.js` — standalone widget module
-- Fixes discoverability gap: features were buried in sidebar, now visible at a glance
+- 4 live aggregate widget chips in the header metrics bar
+- `dashboard/js/dashboard-widgets.js` — standalone widget module, polls every 60s
 
 ---
 
@@ -28,25 +186,15 @@ Format: [version] — date | what changed | PR
 ### Added
 - `server/webhook-delivery.js` — full SQLite-backed delivery engine
   - `webhook_deliveries` table with WAL mode
-  - Exponential backoff: 1s → 2s → 4s → 8s → 16s (max 5 attempts)
-  - Circuit breaker: ≥3 failures from last 5 deliveries = open circuit
+  - Exponential backoff: 0s → 1s → 2s → 4s → 8s (max 5 attempts)
+  - Circuit breaker: ≥3 failures from last 5 deliveries = open circuit; 60s TTL
   - Background worker polls pending retries every 60s — survives restarts
 - `better-sqlite3` dependency
 - `GET /api/webhooks/:id/deliveries` — delivery history with stats
 - `POST /api/webhooks/:id/retry` — manual retry by deliveryId
 - `POST /api/webhooks/:id/reset-circuit` — reset circuit breaker
 - Dashboard: delivery slide-out panel with ↻ Retry + Reset Circuit buttons
-
----
-
-## [1.13.0] — 2026-03-04 | Persistent Webhook Delivery Log
-
-**PR #61** — `feature/webhook-delivery-persistence`
-
-### Added
-- JSON file-based persistence for webhook delivery log (survives restarts)
-- `GET /api/webhooks/:id/deliveries` + `POST /api/webhooks/:id/retry` endpoints
-- Dashboard delivery history panel with manual retry + reset circuit buttons
+- SQLite DB stored at `.mission-control/webhook-deliveries.db` (gitignored)
 
 ---
 
@@ -67,7 +215,7 @@ Format: [version] — date | what changed | PR
 **PR #58** — `feature/update-banner`
 
 ### Added
-- `GET /api/update/check` — checks npm registry for latest version
+- `GET /api/releases/check` — checks npm registry for latest version
 - Dismissable banner in dashboard header when update available
 - Polls on page load + every 6 hours; dismiss stored in localStorage per version
 
@@ -80,7 +228,6 @@ Format: [version] — date | what changed | PR
 ### Added
 - Exponential backoff retry on webhook delivery failure (upgraded to SQLite in v1.14.0)
 - Circuit breaker: 5 consecutive failures → open for 5 min
-- `GET /api/webhooks/status` — per-URL delivery stats
 
 ---
 
