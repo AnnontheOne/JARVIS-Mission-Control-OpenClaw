@@ -2153,6 +2153,120 @@ function getGithubConfig() {
 }
 
 // ============================================
+// AGENT SOUL WORKSPACE SYNC (v1.5.0)
+// ============================================
+
+const AGENTS_WORKSPACE_DIR = process.env.AGENTS_DIR || '/root/.openclaw/workspace/agents';
+const SOUL_FILES = ['SOUL.md', 'MEMORY.md', 'IDENTITY.md'];
+
+/** Validate agentId — only word chars, hyphens, dots */
+function isValidAgentId(id) {
+    return typeof id === 'string' && /^[a-zA-Z0-9_\-\.]{1,64}$/.test(id);
+}
+
+/** Validate filename is in the allowed SOUL_FILES list */
+function isValidSoulFile(filename) {
+    return SOUL_FILES.includes(filename);
+}
+
+/**
+ * GET /api/agents/list
+ * List all agents in the workspace directory with their file availability.
+ */
+app.get('/api/agents/list', async (req, res) => {
+    try {
+        const entries = await fs.readdir(AGENTS_WORKSPACE_DIR, { withFileTypes: true });
+        const agents = [];
+        for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+            if (!isValidAgentId(entry.name)) continue;
+            const agentDir = path.join(AGENTS_WORKSPACE_DIR, entry.name);
+            const files = {};
+            for (const f of SOUL_FILES) {
+                try { await fs.access(path.join(agentDir, f)); files[f] = true; } catch { files[f] = false; }
+            }
+            agents.push({ id: entry.name, dir: agentDir, files });
+        }
+        res.json({ agents, count: agents.length });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /api/agents/soul/:agentId
+ * Returns all soul/memory files for an agent (SOUL.md, MEMORY.md, IDENTITY.md).
+ */
+app.get('/api/agents/soul/:agentId', async (req, res) => {
+    const { agentId } = req.params;
+    if (!isValidAgentId(agentId)) return res.status(400).json({ error: 'Invalid agentId' });
+
+    const agentDir = path.resolve(AGENTS_WORKSPACE_DIR, agentId);
+    const workspaceResolved = path.resolve(AGENTS_WORKSPACE_DIR);
+    if (!agentDir.startsWith(workspaceResolved + path.sep) && agentDir !== workspaceResolved) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        await fs.access(agentDir);
+    } catch {
+        return res.status(404).json({ error: `Agent directory not found: ${agentId}` });
+    }
+
+    const files = {};
+    for (const filename of SOUL_FILES) {
+        const filePath = path.join(agentDir, filename);
+        try {
+            const content = await fs.readFile(filePath, 'utf8');
+            files[filename] = { content, exists: true, size: Buffer.byteLength(content, 'utf8') };
+        } catch {
+            files[filename] = { content: '', exists: false, size: 0 };
+        }
+    }
+
+    res.json({ agentId, dir: agentDir, files, availableFiles: SOUL_FILES });
+});
+
+/**
+ * PUT /api/agents/soul/:agentId
+ * Write updated content for a specific file (with auto-backup).
+ * Body: { filename: 'SOUL.md', content: '...' }
+ */
+app.put('/api/agents/soul/:agentId', async (req, res) => {
+    const { agentId } = req.params;
+    const { filename, content } = req.body || {};
+
+    if (!isValidAgentId(agentId)) return res.status(400).json({ error: 'Invalid agentId' });
+    if (!isValidSoulFile(filename)) return res.status(400).json({ error: `File not allowed. Must be one of: ${SOUL_FILES.join(', ')}` });
+    if (typeof content !== 'string') return res.status(400).json({ error: 'content must be a string' });
+    if (content.length > 500_000) return res.status(400).json({ error: 'Content too large (max 500KB)' });
+
+    const agentDir = path.resolve(AGENTS_WORKSPACE_DIR, agentId);
+    const workspaceResolved = path.resolve(AGENTS_WORKSPACE_DIR);
+    if (!agentDir.startsWith(workspaceResolved + path.sep) && agentDir !== workspaceResolved) {
+        return res.status(403).json({ error: 'Access denied' });
+    }
+
+    try {
+        await fs.access(agentDir);
+    } catch {
+        return res.status(404).json({ error: `Agent directory not found: ${agentId}` });
+    }
+
+    const filePath = path.join(agentDir, filename);
+    // Create automatic backup before overwriting
+    try {
+        const existing = await fs.readFile(filePath, 'utf8');
+        const backupPath = filePath.replace('.md', `.backup-${Date.now()}.md`);
+        await fs.writeFile(backupPath, existing);
+    } catch { /* file didn't exist yet — no backup needed */ }
+
+    await fs.writeFile(filePath, content, 'utf8');
+    const size = Buffer.byteLength(content, 'utf8');
+    res.json({ ok: true, agentId, filename, size, timestamp: new Date().toISOString() });
+});
+
+// ============================================
 // Serve dashboard static files (MUST be before catch-all route)
 app.use(express.static(DASHBOARD_DIR));
 
