@@ -38,7 +38,7 @@
                 <span class="logo-icon">J</span>
                 JARVIS Mission Control
             </h1>
-            <span class="version">v1.15.0</span>
+            <span class="version">v1.16.0</span>
         </div>
         <div class="header-right">
             <div class="metrics">
@@ -58,23 +58,7 @@
                     <span class="metric-value" id="active-agents">0</span>
                     <span class="metric-label">Agents</span>
                 </div>
-                <!-- Aggregate widgets v1.15.0 -->
-                <div class="metric metric-widget" id="widget-claude" onclick="openClaudeSessions()" title="Claude Code Sessions" style="cursor:pointer;">
-                    <span class="metric-value" id="widget-claude-value">—</span>
-                    <span class="metric-label">🖥 Claude</span>
-                </div>
-                <div class="metric metric-widget" id="widget-cli" title="CLI Connections" style="cursor:pointer;" onclick="openCliConnectionsPanel && openCliConnectionsPanel()">
-                    <span class="metric-value" id="widget-cli-value">—</span>
-                    <span class="metric-label">⚡ CLI</span>
-                </div>
-                <div class="metric metric-widget" id="widget-github" title="GitHub Sync" style="cursor:pointer;">
-                    <span class="metric-value" id="widget-github-value">—</span>
-                    <span class="metric-label">🐙 GitHub</span>
-                </div>
-                <div class="metric metric-widget" id="widget-webhooks" title="Webhook Health" style="cursor:pointer;" onclick="loadWebhooksList()">
-                    <span class="metric-value" id="widget-webhooks-value">—</span>
-                    <span class="metric-label">🔔 Hooks</span>
-                </div>
+                <!-- Widget chips removed in v1.16.0 — replaced by feature-metrics cards below -->
             </div>
             <button class="btn btn-secondary" id="refresh-btn" onclick="forceRefreshBoard()" title="Reload all tasks from server">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -92,6 +76,62 @@
             </button>
         </div>
     </header>
+
+    <!-- Feature Widget Cards (v1.16.0) -->
+    <div class="metrics-cards" id="feature-metrics">
+        <div class="feature-card" id="fcard-claude" onclick="openClaudeSessions()" title="Open Claude Sessions">
+            <div class="fcard-header">
+                <span class="fcard-icon">🖥</span>
+                <span class="fcard-title">Claude Sessions</span>
+                <span class="fcard-status-dot" id="fcard-claude-dot"></span>
+            </div>
+            <div class="fcard-metric" id="fcard-claude-main">—</div>
+            <div class="fcard-secondary" id="fcard-claude-secondary">— total</div>
+            <div class="fcard-footer">
+                <span class="fcard-time" id="fcard-claude-time">Last scan: —</span>
+                <span class="fcard-arrow">→</span>
+            </div>
+        </div>
+        <div class="feature-card" id="fcard-cli" onclick="openCliConnectionsPanel ? openCliConnectionsPanel() : openCliConnections()" title="Open CLI Connections">
+            <div class="fcard-header">
+                <span class="fcard-icon">⚡</span>
+                <span class="fcard-title">CLI Connections</span>
+                <span class="fcard-status-dot" id="fcard-cli-dot"></span>
+            </div>
+            <div class="fcard-metric" id="fcard-cli-main">—</div>
+            <div class="fcard-secondary" id="fcard-cli-secondary">— total registered</div>
+            <div class="fcard-footer">
+                <span class="fcard-time" id="fcard-cli-time">Last scan: —</span>
+                <span class="fcard-arrow">→</span>
+            </div>
+        </div>
+        <div class="feature-card" id="fcard-github" onclick="openGithubPanel()" title="Open GitHub Sync">
+            <div class="fcard-header">
+                <span class="fcard-icon">🐙</span>
+                <span class="fcard-title">GitHub Sync</span>
+                <span class="fcard-status-dot" id="fcard-github-dot"></span>
+            </div>
+            <div class="fcard-metric" id="fcard-github-main">—</div>
+            <div class="fcard-secondary" id="fcard-github-secondary">synced issues</div>
+            <div class="fcard-footer">
+                <span class="fcard-time" id="fcard-github-time">Last sync: —</span>
+                <span class="fcard-arrow">→</span>
+            </div>
+        </div>
+        <div class="feature-card" id="fcard-webhooks" onclick="loadWebhooksList()" title="Open Webhook Health">
+            <div class="fcard-header">
+                <span class="fcard-icon">🔔</span>
+                <span class="fcard-title">Webhook Health</span>
+                <span class="fcard-status-dot" id="fcard-webhooks-dot"></span>
+            </div>
+            <div class="fcard-metric" id="fcard-webhooks-main">—</div>
+            <div class="fcard-secondary" id="fcard-webhooks-secondary">— open circuits</div>
+            <div class="fcard-footer">
+                <span class="fcard-time" id="fcard-webhooks-time">Last scan: —</span>
+                <span class="fcard-arrow">→</span>
+            </div>
+        </div>
+    </div>
 
     <main class="main-content">
         <!-- Sidebar (LEFT) - Command Panel -->

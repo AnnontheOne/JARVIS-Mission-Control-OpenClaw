@@ -5435,3 +5435,145 @@ body::after {
 [data-theme="light"] .quota-progress-bar {
     background: var(--bg-tertiary);
 }
+
+/* ============================================
+   FEATURE WIDGET CARDS (v1.16.0)
+   Second metrics row — clickable stat cards
+   ============================================ */
+
+.metrics-cards {
+    display: flex;
+    gap: 12px;
+    padding: 10px 24px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.feature-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: rgba(0, 255, 65, 0.05);
+    border: 1px solid rgba(0, 255, 65, 0.2);
+    border-radius: 8px;
+    padding: 12px 16px;
+    min-width: 180px;
+    flex: 1;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.4), transparent);
+}
+
+.feature-card:hover {
+    border-color: rgba(0, 255, 65, 0.5);
+    box-shadow: 0 0 12px rgba(0, 255, 65, 0.15);
+    transform: translateY(-1px);
+}
+
+.fcard-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.fcard-icon {
+    font-size: 14px;
+}
+
+.fcard-title {
+    font-size: 11px;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    flex: 1;
+}
+
+.fcard-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #555;
+    flex-shrink: 0;
+}
+
+.fcard-status-dot.healthy {
+    background: #00ff41;
+    box-shadow: 0 0 6px rgba(0, 255, 65, 0.6);
+}
+
+.fcard-status-dot.warning {
+    background: #ffcc00;
+    box-shadow: 0 0 6px rgba(255, 204, 0, 0.6);
+}
+
+.fcard-status-dot.error {
+    background: #ff4444;
+    box-shadow: 0 0 6px rgba(255, 68, 68, 0.6);
+}
+
+.fcard-metric {
+    font-family: 'Orbitron', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--neon-green);
+    line-height: 1;
+    margin: 2px 0;
+}
+
+.fcard-secondary {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.fcard-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(0, 255, 65, 0.1);
+}
+
+.fcard-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: 'Share Tech Mono', monospace;
+}
+
+.fcard-arrow {
+    font-size: 12px;
+    color: rgba(0, 255, 65, 0.4);
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.feature-card:hover .fcard-arrow {
+    color: var(--neon-green);
+    transform: translateX(3px);
+}
+
+.fcard-metric.error {
+    color: #ff4444;
+}
+
+.fcard-metric.warning {
+    color: #ffcc00;
+}
+
+@media (max-width: 768px) {
+    .metrics-cards {
+        display: none;
+    }
+}
