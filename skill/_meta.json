@@ -1,8 +1,8 @@
 {
   "name": "Free Mission Control for OpenClaw AI Agents",
   "slug": "jarvis-mission-control",
-  "version": "1.0.9",
-  "description": "Set up JARVIS Mission Control \u2014 a free, self-hosted task and coordination hub for OpenClaw AI agents. Fork the GitHub repo, run locally, or connect to MissionDeck.ai for a cloud dashboard without hosting anything.",
+  "version": "2.0.3",
+  "description": "JARVIS Mission Control v2 — a free, self-hosted command center for OpenClaw AI agents. Kanban board, real-time chat, Claude Code session tracking, GitHub Issues sync, webhook delivery monitoring, CLI console, agent SOUL editor, and a full Matrix-themed dashboard. Self-host from GitHub or connect to MissionDeck.ai.",
   "author": "Asif2BD",
   "tags": [
     "mission-control",
@@ -10,9 +10,13 @@
     "coordination",
     "multi-agent",
     "missiondeck",
-    "free"
+    "free",
+    "dashboard",
+    "kanban",
+    "claude",
+    "github"
   ],
   "repository": "https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw",
   "homepage": "https://missiondeck.ai",
-  "changelog": "v1.0.9: Fixed OpenClaw group session message format parser \u2014 extracts chatId/sender/messageId from Conversation info metadata blocks. Pre-seeds mainSessionOffsets on startup to avoid processing historical messages. v1.0.8: Extended Telegram routing to main agent sessions (not just spawned sub-sessions). v1.0.7: Telegram to MC auto-routing via /api/telegram/task."
+  "changelog": "v2.0.3: Smart slide-out panels for Chat (real-time WebSocket), Reports, and Schedules. Fixed panel CSS transition bug (panels not opening on mobile). v2.0.2: Right sidebar UX fixes, double /api/ URL bug, chat overflow fix. v2.0.1: Dark mode hardcoded as default, Getting Started modal fix. v2.0.0: Major UI overhaul — widget cards, enhanced task cards with priority bars + agent avatars, collapsible sidebar groups (TEAM/INTELLIGENCE/SYSTEM), panel header redesign, Matrix theme polish (CRT scanlines, pulse-glow, rain accent). v1.15.0: Dashboard aggregate widgets. v1.14.0: SQLite-backed webhook delivery (persistent, survives restart). v1.13.0: Persistent webhook delivery log. v1.12.0: 51-test Jest suite. v1.11.0: Update available banner. v1.10.0: Webhook retry + circuit breaker. v1.9.0: Pino structured logging. v1.8.0: Agent SOUL panel UI fix. v1.7.0: Rate limiting. v1.6.0: CSRF protection. v1.5.0: Agent SOUL workspace sync. v1.4.0: GitHub Issues sync. v1.3.0: CLI integration panel. v1.2.0: Claude Code session tracking."
 }
