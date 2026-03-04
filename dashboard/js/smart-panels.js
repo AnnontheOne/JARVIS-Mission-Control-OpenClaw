@@ -12,22 +12,36 @@ function _closeAllSmartPanels(except) {
     ['smart-chat-panel','reports-panel','schedules-panel'].forEach(id => {
         if (id === except) return;
         const el = document.getElementById(id);
-        if (el) el.style.display = 'none';
+        if (el) {
+            el.classList.remove('open');
+            // Let CSS transition finish before hiding
+            setTimeout(() => { if (!el.classList.contains('open')) el.style.display = 'none'; }, 300);
+        }
     });
 }
 
 function _openPanel(id) {
-    _closeAllSmartPanels(id);
     const el = document.getElementById(id);
-    if (!el) return;
-    if (el.style.display !== 'none') {
-        // Toggle: close if already open
-        el.style.display = 'none';
-        return true; // was open, now closed
+    if (!el) return false;
+
+    const isOpen = el.classList.contains('open');
+    if (isOpen) {
+        // Toggle close
+        el.classList.remove('open');
+        setTimeout(() => { el.style.display = 'none'; }, 300);
+        return true; // was open, now closing
     }
+
+    // Close other smart panels first
+    _closeAllSmartPanels(id);
+
+    // Show and animate open
     el.style.display = 'flex';
     el.style.flexDirection = 'column';
-    return false; // was closed, now open
+    // Force reflow so transition fires
+    el.offsetHeight; // eslint-disable-line no-unused-expressions
+    el.classList.add('open');
+    return false; // was closed, now opening
 }
 
 /* ================================================================
@@ -39,7 +53,8 @@ let _chatMessages = [];
 let _chatCurrentUser = 'user'; // will use connected agent name if available
 
 function openChatPanel() {
-    _chatOpen = !_openPanel('smart-chat-panel');
+    const wasOpen = _openPanel('smart-chat-panel');
+    _chatOpen = !wasOpen;
     if (_chatOpen) {
         _loadChatMessages();
         setTimeout(() => {
@@ -55,7 +70,7 @@ function openChatPanel() {
 
 function closeChatPanel() {
     const el = document.getElementById('smart-chat-panel');
-    if (el) el.style.display = 'none';
+    if (el) { el.classList.remove('open'); setTimeout(() => { el.style.display = 'none'; }, 300); }
     _chatOpen = false;
 }
 
@@ -193,7 +208,7 @@ async function openReportsPanel() {
 
 function closeReportsPanel() {
     const el = document.getElementById('reports-panel');
-    if (el) el.style.display = 'none';
+    if (el) { el.classList.remove('open'); setTimeout(() => { el.style.display = 'none'; }, 300); }
 }
 
 async function switchReportsTab(dir) {
@@ -276,7 +291,7 @@ async function openSchedulesPanel() {
 
 function closeSchedulesPanel() {
     const el = document.getElementById('schedules-panel');
-    if (el) el.style.display = 'none';
+    if (el) { el.classList.remove('open'); setTimeout(() => { el.style.display = 'none'; }, 300); }
 }
 
 function filterSchedules(filter) {
