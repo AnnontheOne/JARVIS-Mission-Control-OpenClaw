@@ -2007,6 +2007,152 @@ app.post('/api/connect/:id/heartbeat', (req, res) => {
 });
 
 // ============================================
+// GITHUB ISSUES SYNC (v1.4.0)
+// ============================================
+
+/**
+ * GET /api/github/issues
+ * Fetch open issues from the configured GitHub repo.
+ * Reads GITHUB_TOKEN + GITHUB_REPO from env or .github-sync config file.
+ */
+app.get('/api/github/issues', async (req, res) => {
+    try {
+        const { token, repo } = getGithubConfig();
+        if (!repo) return res.status(400).json({ error: 'GITHUB_REPO not configured. Set env var or create .github-sync file.' });
+
+        const headers = { 'User-Agent': 'JARVIS-Mission-Control/1.4.0', 'Accept': 'application/vnd.github+json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const url = `https://api.github.com/repos/${repo}/issues?state=open&per_page=50`;
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            const err = await response.text();
+            return res.status(response.status).json({ error: `GitHub API error: ${response.status}`, detail: err.slice(0, 500) });
+        }
+        const issues = await response.json();
+        // Filter out pull requests (they appear in /issues)
+        const filtered = issues.filter(i => !i.pull_request);
+        res.json({ repo, issues: filtered, count: filtered.length, timestamp: new Date().toISOString() });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * POST /api/github/sync
+ * Auto-create JARVIS task cards from open GitHub issues.
+ * Idempotent: won't duplicate tasks already created for the same issue number.
+ */
+app.post('/api/github/sync', async (req, res) => {
+    try {
+        const { token, repo } = getGithubConfig();
+        if (!repo) return res.status(400).json({ error: 'GITHUB_REPO not configured.' });
+
+        const headers = { 'User-Agent': 'JARVIS-Mission-Control/1.4.0', 'Accept': 'application/vnd.github+json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const url = `https://api.github.com/repos/${repo}/issues?state=open&per_page=50`;
+        const response = await fetch(url, { headers });
+        if (!response.ok) {
+            const err = await response.text();
+            return res.status(response.status).json({ error: `GitHub API error: ${response.status}`, detail: err.slice(0, 500) });
+        }
+        const allIssues = await response.json();
+        const issues = allIssues.filter(i => !i.pull_request);
+
+        // Load existing tasks to check for already-synced issues
+        const tasksDir = path.join(MISSION_CONTROL_DIR, 'tasks');
+        await fs.mkdir(tasksDir, { recursive: true });
+        const existingFiles = await fs.readdir(tasksDir).catch(() => []);
+        const existingTasks = await Promise.all(existingFiles.filter(f => f.endsWith('.json')).map(async f => {
+            try { return JSON.parse(await fs.readFile(path.join(tasksDir, f), 'utf8')); } catch { return null; }
+        }));
+        const syncedIssueNums = new Set(existingTasks.filter(Boolean).map(t => t.github_issue_number).filter(Boolean));
+
+        const created = [];
+        const skipped = [];
+
+        for (const issue of issues) {
+            if (syncedIssueNums.has(issue.number)) {
+                skipped.push(issue.number);
+                continue;
+            }
+            const taskId = `task-github-${repo.replace('/', '-')}-issue-${issue.number}`;
+            const task = {
+                id: taskId,
+                title: `[GH #${issue.number}] ${issue.title}`,
+                description: (issue.body || '').slice(0, 2000),
+                status: 'INBOX',
+                priority: issue.labels.some(l => l.name.toLowerCase().includes('bug') || l.name.toLowerCase().includes('critical')) ? 'high' : 'normal',
+                assignee: null,
+                created_by: 'github-sync',
+                labels: ['github', ...issue.labels.map(l => l.name).slice(0, 5)],
+                comments: [],
+                attachments: [],
+                github_issue_number: issue.number,
+                github_issue_url: issue.html_url,
+                github_repo: repo,
+                created_at: issue.created_at,
+                updated_at: new Date().toISOString(),
+            };
+            await fs.writeFile(path.join(tasksDir, `${taskId}.json`), JSON.stringify(task, null, 2));
+            created.push(issue.number);
+        }
+
+        // Broadcast WebSocket update
+        broadcast('github-sync', { created: created.length, skipped: skipped.length });
+
+        res.json({ ok: true, repo, created, skipped, message: `Created ${created.length} task(s), skipped ${skipped.length} already synced.` });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+/**
+ * GET /api/github/config
+ * Return current GitHub config (without exposing the token).
+ */
+app.get('/api/github/config', (req, res) => {
+    const { token, repo } = getGithubConfig();
+    res.json({ repo: repo || null, hasToken: !!token });
+});
+
+/**
+ * POST /api/github/config
+ * Save GitHub config to .github-sync file.
+ */
+app.post('/api/github/config', async (req, res) => {
+    const { token, repo } = req.body || {};
+    if (!repo || typeof repo !== 'string' || !/^[a-zA-Z0-9_.\-]+\/[a-zA-Z0-9_.\-]+$/.test(repo)) {
+        return res.status(400).json({ error: 'repo must be in owner/name format' });
+    }
+    const configPath = path.join(MISSION_CONTROL_DIR, '.github-sync');
+    const lines = [`GITHUB_REPO=${repo}`];
+    if (token && typeof token === 'string') lines.push(`GITHUB_TOKEN=${token.replace(/[^a-zA-Z0-9_\-]/g, '').slice(0, 100)}`);
+    await fs.writeFile(configPath, lines.join('\n') + '\n');
+    res.json({ ok: true, repo, hasToken: !!token });
+});
+
+/** Helper: read GITHUB_TOKEN + GITHUB_REPO from env or .github-sync config file */
+function getGithubConfig() {
+    let token = process.env.GITHUB_TOKEN || '';
+    let repo = process.env.GITHUB_REPO || '';
+    try {
+        const configPath = path.join(MISSION_CONTROL_DIR, '.github-sync');
+        if (fsSync.existsSync(configPath)) {
+            fsSync.readFileSync(configPath, 'utf8').split('\n').forEach(line => {
+                const [k, ...v] = line.split('=');
+                if (!k || !v.length) return;
+                const val = v.join('=').trim();
+                if (k.trim() === 'GITHUB_TOKEN' && !token) token = val;
+                if (k.trim() === 'GITHUB_REPO' && !repo) repo = val;
+            });
+        }
+    } catch { /* ignore */ }
+    return { token, repo };
+}
+
+// ============================================
 // Serve dashboard static files (MUST be before catch-all route)
 app.use(express.static(DASHBOARD_DIR));
 
