@@ -16,6 +16,8 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const http = require('http');
+const cookieParser = require('cookie-parser');
+const Tokens = require('csrf');
 const ResourceManager = require('./resource-manager');
 const ReviewManager = require('./review-manager');
 const telegramBridge = require('./telegram-bridge');
@@ -35,8 +37,58 @@ const DASHBOARD_DIR = path.join(__dirname, '..', 'dashboard');
 
 // Initialize Express
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
+
+// ============================================
+// CSRF PROTECTION (v1.6.0)
+// ============================================
+
+const csrfTokens = new Tokens();
+
+// CSRF cookie name
+const CSRF_SECRET_COOKIE = 'mc-csrf-secret';
+
+/**
+ * GET /api/csrf-token
+ * Returns a CSRF token for use in X-CSRF-Token header.
+ * Generates a per-session secret stored in an HttpOnly cookie.
+ */
+// (route registered below with other routes)
+
+/**
+ * CSRF validation middleware for state-changing routes (POST/PUT/DELETE/PATCH).
+ *
+ * Skip strategy:
+ *   1. GET/HEAD/OPTIONS — always safe, skip
+ *   2. No CSRF cookie present → API client (not a browser session), skip
+ *      (CSRF attacks require cookies; if no cookie, there's no forging risk)
+ *   3. CSRF cookie present → must have a valid X-CSRF-Token header
+ *
+ * This keeps CLI tool calls (POST /api/connect, etc.) working without tokens
+ * while protecting browser-initiated mutations.
+ */
+function csrfProtection(req, res, next) {
+    const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
+    if (safeMethods.includes(req.method)) return next();
+
+    // If there's no secret cookie, this is an API-to-API request — skip CSRF
+    const secret = req.cookies && req.cookies[CSRF_SECRET_COOKIE];
+    if (!secret) return next();
+
+    // Browser request: validate the token
+    const token = req.headers['x-csrf-token'] || (req.body && req.body._csrf);
+    if (!token) {
+        return res.status(403).json({ error: 'CSRF token missing', code: 'CSRF_MISSING' });
+    }
+    if (!csrfTokens.verify(secret, token)) {
+        return res.status(403).json({ error: 'CSRF token invalid', code: 'CSRF_INVALID' });
+    }
+    next();
+}
+
+app.use(csrfProtection);
 
 // Security middleware: sanitize named route parameters
 // app.param() runs *after* route matching so req.params is populated — unlike app.use() which is a no-op here
@@ -1944,6 +1996,32 @@ app.post('/api/cli/run', (req, res) => {
             timestamp: new Date().toISOString(),
         });
     });
+});
+
+// ============================================
+// CSRF TOKEN ENDPOINT (v1.6.0)
+// ============================================
+
+/**
+ * GET /api/csrf-token
+ * Returns a fresh CSRF token.
+ * Sets mc-csrf-secret cookie (HttpOnly, SameSite=Strict) for the session.
+ * Dashboard JS should call this once on load and cache the token.
+ */
+app.get('/api/csrf-token', (req, res) => {
+    // Reuse existing secret if present, otherwise generate a new one
+    let secret = req.cookies && req.cookies[CSRF_SECRET_COOKIE];
+    if (!secret) {
+        secret = csrfTokens.secretSync();
+        res.cookie(CSRF_SECRET_COOKIE, secret, {
+            httpOnly: true,
+            sameSite: 'strict',
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 86400 * 1000, // 24h
+        });
+    }
+    const token = csrfTokens.create(secret);
+    res.json({ token, expires: new Date(Date.now() + 3600_000).toISOString() });
 });
 
 // ============================================

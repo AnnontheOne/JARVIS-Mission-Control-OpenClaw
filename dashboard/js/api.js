@@ -11,13 +11,32 @@ const MissionControlAPI = {
     wsReconnectAttempts: 0,
     maxReconnectAttempts: 5,
     eventHandlers: new Map(),
+    // CSRF token — fetched once on init, refreshed if expired (v1.6.0)
+    _csrfToken: null,
 
     /**
-     * Initialize the API and WebSocket connection
+     * Initialize the API, WebSocket connection, and CSRF token
      */
     init() {
         this.connectWebSocket();
+        this.initCsrf(); // Fetch CSRF token in background
         return this;
+    },
+
+    /**
+     * Fetch and cache the CSRF token (v1.6.0).
+     * Called on init and whenever a 403 CSRF error is received.
+     */
+    async initCsrf() {
+        try {
+            const res = await fetch(`${this.baseUrl}/api/csrf-token`, { credentials: 'same-origin' });
+            if (res.ok) {
+                const data = await res.json();
+                this._csrfToken = data.token;
+            }
+        } catch (_) {
+            // CSRF init failure is non-fatal — falls back to no-token (API clients)
+        }
     },
 
     // ============================================
@@ -25,18 +44,47 @@ const MissionControlAPI = {
     // ============================================
 
     /**
-     * Make an API request
+     * Make an API request.
+     * Automatically adds X-CSRF-Token header for state-changing methods (v1.6.0).
      */
     async request(endpoint, options = {}) {
         const url = `${this.baseUrl}/api${endpoint}`;
+        const method = (options.method || 'GET').toUpperCase();
+        const mutatingMethods = ['POST', 'PUT', 'PATCH', 'DELETE'];
+
+        const headers = {
+            'Content-Type': 'application/json',
+            ...options.headers,
+        };
+
+        // Add CSRF token for state-changing requests
+        if (mutatingMethods.includes(method) && this._csrfToken) {
+            headers['X-CSRF-Token'] = this._csrfToken;
+        }
 
         const response = await fetch(url, {
             ...options,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers
-            }
+            credentials: 'same-origin',
+            headers,
         });
+
+        // Auto-refresh CSRF token on 403 CSRF errors and retry once
+        if (response.status === 403) {
+            const errBody = await response.json().catch(() => ({}));
+            if (errBody.code === 'CSRF_INVALID' || errBody.code === 'CSRF_MISSING') {
+                await this.initCsrf();
+                if (this._csrfToken) {
+                    headers['X-CSRF-Token'] = this._csrfToken;
+                    const retryResponse = await fetch(url, { ...options, credentials: 'same-origin', headers });
+                    if (!retryResponse.ok) {
+                        const err = await retryResponse.json().catch(() => ({}));
+                        throw new Error(err.error || `API error: ${retryResponse.status}`);
+                    }
+                    return retryResponse.json();
+                }
+            }
+            throw new Error(errBody.error || `API error: 403`);
+        }
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
