@@ -38,7 +38,7 @@
                 <span class="logo-icon">J</span>
                 JARVIS Mission Control
             </h1>
-            <span class="version">v2.0.1</span>
+            <span class="version">v2.0.2</span>
         </div>
         <div class="header-right">
             <div class="metrics">
@@ -60,6 +60,13 @@
                 </div>
                 <!-- Widget chips removed in v1.16.0 — replaced by feature-metrics cards below -->
             </div>
+            <button class="btn btn-secondary" onclick="openReportsPanel()" title="Reports & Files">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                Reports
+            </button>
             <button class="btn btn-secondary" id="refresh-btn" onclick="forceRefreshBoard()" title="Reload all tasks from server">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="23 4 23 10 17 10"></polyline>
@@ -346,7 +353,8 @@
         </div>
 
         <!-- Right Sidebar - Reports, Queue & Settings -->
-        <aside class="sidebar-right">
+        <!-- Right sidebar moved to slide-out panel (v2.0.2) — Kanban gets full width -->
+        <aside class="sidebar-right" id="right-sidebar" style="display:none;">
             <!-- Reports Section -->
             <div class="right-section reports-section">
                 <div class="right-section-header">
@@ -824,36 +832,14 @@
         </div>
     </div>
 
-    <!-- Chat Panel (bottom-right floating) -->
-    <div class="chat-panel" id="chat-panel">
-        <div class="chat-header" onclick="toggleChatPanel()">
-            <div class="chat-header-left">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <span class="chat-title">Mission Control Chat</span>
-            </div>
-            <div class="chat-header-right">
-                <span id="chat-unread-header" class="chat-unread-count" style="display:none">0</span>
-                <button class="chat-minimize-btn" aria-label="Toggle chat">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                </button>
-            </div>
-        </div>
-        <div class="chat-body">
-            <div id="chat-messages" class="chat-messages"></div>
-            <div class="chat-input-wrapper">
-                <input type="text" id="chat-input" class="chat-input" placeholder="Type a message... @mention an agent" onkeydown="if(event.key==='Enter')sendChatMessage()">
-                <button class="chat-send-btn" onclick="sendChatMessage()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Chat Toggle Button (when panel is closed) -->
-    <button class="chat-toggle-btn" id="chat-toggle-btn" onclick="toggleChatPanel()" aria-label="Open chat">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-        <span id="chat-unread-fab" class="chat-fab-badge" style="display:none">0</span>
-    </button>
+    <!-- Chat panel removed in v2.0.2 — was overflowing viewport and not functional enough -->
+    <!-- Hidden stubs keep JS references from throwing errors -->
+    <div id="chat-panel" style="display:none;"></div>
+    <div id="chat-toggle-btn" style="display:none;"></div>
+    <div id="chat-messages" style="display:none;"></div>
+    <input id="chat-input" style="display:none;">
+    <span id="chat-unread-fab" style="display:none;"></span>
+    <span id="chat-unread-header" style="display:none;"></span>
 
     <!-- Instructions Panel -->
     <div class="instructions-panel" id="instructions-panel">
@@ -1275,6 +1261,29 @@
         </div>
     </div>
 
+    <!-- Reports & Files Slide-out Panel (v2.0.2) -->
+    <div class="agent-profile-panel" id="reports-panel" style="display:none; width:520px; max-width:95vw;">
+        <div class="panel-header-gradient">
+            <div class="panel-header-icon">📋</div>
+            <div class="panel-header-text">
+                <h3>Reports &amp; Files</h3>
+                <p>Files saved in .mission-control/reports/</p>
+            </div>
+            <div class="panel-header-stats">
+                <span class="stat-pill" id="reports-panel-count">0 files</span>
+            </div>
+            <button class="close-btn profile-close" onclick="closeReportsPanel()" aria-label="Close">&times;</button>
+        </div>
+        <div class="profile-panel-body" style="padding:0 20px 20px; flex:1; overflow-y:auto;">
+            <div class="reports-tabs" style="display:flex; gap:6px; margin-bottom:14px; padding-top:4px;">
+                <button class="btn btn-secondary" style="font-size:11px; padding:3px 10px;" onclick="switchReportsTab('reports')" id="rtab-reports">Reports</button>
+                <button class="btn btn-secondary" style="font-size:11px; padding:3px 10px; opacity:0.5;" onclick="switchReportsTab('logs')" id="rtab-logs">Logs</button>
+                <button class="btn btn-secondary" style="font-size:11px; padding:3px 10px; opacity:0.5;" onclick="switchReportsTab('archived-tasks')" id="rtab-archive">Archive</button>
+            </div>
+            <div id="reports-panel-list"></div>
+        </div>
+    </div>
+
     <!-- Webhook Delivery History Panel (v1.15.0) -->
     <div class="agent-profile-panel" id="webhook-delivery-panel" style="display:none; width:540px; max-width:95vw;">
         <div class="panel-header-gradient">
@@ -1478,5 +1487,14 @@
     <script src="./js/soul-files.js"></script>
     <script src="./js/webhooks.js"></script>
     <script src="./js/update-banner.js"></script>
+    <script src="./js/reports-panel.js"></script>
+    <script>
+    // Stubs for removed right sidebar elements — prevent JS errors
+    function toggleChatPanel() {}
+    function loadChatMessages() {}
+    function sendChatMessage() {}
+    // Redirect old loadFiles / switchFilesTab calls to the new panel
+    function switchFilesTab(dir) { switchReportsTab(dir); }
+    </script>
 </body>
 </html>
