@@ -21,6 +21,7 @@ const cookieParser = require('cookie-parser');
 const Tokens = require('csrf');
 
 const rateLimit = require('express-rate-limit');
+const logger = require('./logger');
 const ResourceManager = require('./resource-manager');
 const ReviewManager = require('./review-manager');
 const telegramBridge = require('./telegram-bridge');
@@ -210,7 +211,7 @@ async function readJsonDirectory(dirPath) {
                     const content = await fs.readFile(path.join(fullPath, file), 'utf-8');
                     items.push(JSON.parse(content));
                 } catch (e) {
-                    console.error(`Error reading ${file}:`, e.message);
+                    logger.error({ file, err: e.message }, 'Error reading data file');
                 }
             }
         }
@@ -291,15 +292,15 @@ const wsClients = new Set();
 
 wss.on('connection', (ws) => {
     wsClients.add(ws);
-    console.log('WebSocket client connected. Total:', wsClients.size);
+    logger.info({ event: 'ws_connect' }, 'WebSocket client connected. Total:', wsClients.size);
 
     ws.on('close', () => {
         wsClients.delete(ws);
-        console.log('WebSocket client disconnected. Total:', wsClients.size);
+        logger.info({ event: 'ws_disconnect' }, 'WebSocket client disconnected. Total:', wsClients.size);
     });
 
     ws.on('error', (error) => {
-        console.error('WebSocket error:', error);
+        logger.error({ err: error }, 'WebSocket error');
         wsClients.delete(ws);
     });
 
@@ -329,7 +330,7 @@ function broadcast(type, data) {
  */
 function registerWebhook(id, url, events) {
     webhooks.set(id, { url, events, registered_at: new Date().toISOString() });
-    console.log(`Webhook registered: ${id} -> ${url} for events: ${events.join(', ')}`);
+    logger.info({ event: 'webhook_register' }, `Webhook registered: ${id} -> ${url} for events: ${events.join(', ')}`);
 }
 
 /**
@@ -344,9 +345,9 @@ async function triggerWebhooks(event, data) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ event, data, timestamp: new Date().toISOString() })
                 });
-                console.log(`Webhook ${id} triggered for ${event}: ${response.status}`);
+                logger.info({ event: 'webhook_trigger', webhookId: id }, `Webhook ${id} triggered for ${event}: ${response.status}`);
             } catch (error) {
-                console.error(`Webhook ${id} failed:`, error.message);
+                logger.error({ event: 'webhook_error', webhookId: id, err: error.message }, `Webhook ${id} failed`);
             }
         }
     }
@@ -364,15 +365,15 @@ const watcher = chokidar.watch(MISSION_CONTROL_DIR, {
 
 watcher
     .on('add', (filePath) => {
-        console.log(`File added: ${filePath}`);
+        logger.debug({ event: 'file_add' }, `File added: ${filePath}`);
         handleFileChange('created', filePath);
     })
     .on('change', (filePath) => {
-        console.log(`File changed: ${filePath}`);
+        logger.debug({ event: 'file_change' }, `File changed: ${filePath}`);
         handleFileChange('updated', filePath);
     })
     .on('unlink', (filePath) => {
-        console.log(`File deleted: ${filePath}`);
+        logger.debug({ event: 'file_delete' }, `File deleted: ${filePath}`);
         handleFileChange('deleted', filePath);
     });
 
@@ -1751,7 +1752,7 @@ async function readOpenClawCronJobs() {
         const data = JSON.parse(content);
         return data.jobs || [];
     } catch (error) {
-        console.log('Could not read OpenClaw cron jobs:', error.message);
+        logger.warn({ err: error.message }, 'Could not read OpenClaw cron jobs');
         return [];
     }
 }
