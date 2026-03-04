@@ -263,7 +263,7 @@ const MissionControlAPI = {
     // --- Files ---
 
     async getFiles(directory = 'reports') {
-        return this.request(`/api/files?dir=${encodeURIComponent(directory)}`);
+        return this.request(`/files?dir=${encodeURIComponent(directory)}`);
     },
 
     async getFile(directory, filename) {
@@ -288,7 +288,7 @@ const MissionControlAPI = {
     },
 
     async getFileDirectories() {
-        return this.request('/api/files/directories');
+        return this.request('/files/directories');
     },
 
     // --- Task Attachments ---
