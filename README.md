@@ -1,6 +1,6 @@
 # JARVIS Mission Control for OpenClaw
 
-[![Version](https://img.shields.io/badge/version-2.0.3-brightgreen.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.0.4-brightgreen.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
 [![MissionDeck](https://img.shields.io/badge/platform-missiondeck.ai-blue.svg)](https://missiondeck.ai)
 
