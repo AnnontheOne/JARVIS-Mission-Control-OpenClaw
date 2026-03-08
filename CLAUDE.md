@@ -1,3 +1,38 @@
+# 🛠️ DEV RULES — For Claude Code / Tank / Sub-Agents
+
+> **If you are writing code in this repo (not adopting it as a user), read this section first.**
+> Stop after this section unless you need product context. Load skill files on demand.
+
+## Non-Negotiable Rules
+
+1. **Never push to `main`** — always a feature branch
+2. **Never self-merge** — open PR, tag @OracleM_Bot in Matrix Zion group, then stop
+3. **Never raw `git pull` on production** — use `./scripts/safe-deploy.sh --pull`
+4. **Never share `zion.asif.dev` publicly** — it's private infrastructure
+5. **Always sanitize user input** via `sanitizeInput()` in `server/index.js`
+6. **Always use `path.join()`** for file paths — never string concatenation
+7. **Always validate route param IDs** match `^[a-zA-Z0-9-_]+$` to prevent path traversal
+
+## Skill Files (load only what you need)
+
+| Topic | File | Load when... |
+|-------|------|--------------|
+| Git workflow & merge rules | `.claude/skills/git-rules.md` | Committing, branching, PRs |
+| Server architecture & key files | `.claude/skills/architecture.md` | Navigating the codebase |
+| Coding patterns & API conventions | `.claude/skills/coding-patterns.md` | Writing new routes/features |
+| Deploy, PM2, nginx | `.claude/skills/deploy.md` | Deploying or debugging prod |
+
+## Quick Context
+
+- **Stack:** Node.js v22+, Express, WebSocket, Chokidar, JSON file storage (no DB)
+- **Entry point:** `server/index.js`
+- **Data:** `.mission-control/` directory (live data, not in git — never overwrite)
+- **Process:** PM2 `mission-control-server` → `pm2 restart mission-control-server` after changes
+- **Local:** http://localhost:3000 | **Production:** https://zion.asif.dev (private)
+- **Public demo:** https://missiondeck.ai/mission-control/demo (use this in public links)
+
+---
+
 ## 🚀 HOW TO ADOPT MISSION CONTROL (Start Here)
 
 > **Before reading anything else, pick your mode:**
