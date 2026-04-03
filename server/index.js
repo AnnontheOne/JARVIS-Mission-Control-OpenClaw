@@ -202,9 +202,10 @@ function isPathSafe(filePath, baseDir) {
 // IN-MEMORY CACHE (v1.13.0 perf fix)
 // =====================================
 const directoryCache = new Map();
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5-minute TTL — safety net for missed fs events
 
 /**
- * Invalidate cache for a directory (called by chokidar watcher)
+ * Invalidate cache for a directory (called on parse error or forced refresh)
  */
 function invalidateCache(dirPath) {
     directoryCache.delete(dirPath);
@@ -212,12 +213,54 @@ function invalidateCache(dirPath) {
 }
 
 /**
- * Read all JSON files from a directory (parallelized + cached)
+ * Surgically update a single item in the directory cache (v2.0.8 perf fix)
+ * Avoids full cache bust on every file write — O(1) update instead of O(n) re-read
+ * @param {string} dirPath - e.g. 'tasks'
+ * @param {string} fileName - e.g. 'task-123.json'
+ * @param {Object|null} itemData - parsed JSON data, or null for delete
+ * @param {string} action - 'created'|'updated'|'deleted'
+ */
+function updateCacheItem(dirPath, fileName, itemData, action) {
+    if (!directoryCache.has(dirPath)) return; // cache cold — nothing to update
+
+    const entry = directoryCache.get(dirPath);
+    const arr = entry.data;
+
+    if (action === 'deleted') {
+        // Remove the item by matching filename-derived id
+        const idFromFile = fileName.replace(/\.json$/, '');
+        const updated = arr.filter(item => item && item.id !== idFromFile);
+        directoryCache.set(dirPath, { data: updated, cachedAt: entry.cachedAt });
+        logger.debug({ event: 'cache_update_delete', dir: dirPath, file: fileName }, `Cache item removed: ${fileName}`);
+    } else if (itemData) {
+        const idFromFile = fileName.replace(/\.json$/, '');
+        const idx = arr.findIndex(item => item && item.id === idFromFile);
+        if (idx >= 0) {
+            // Update existing item in-place (mutate array; same reference in cache)
+            arr[idx] = itemData;
+            logger.debug({ event: 'cache_update_item', dir: dirPath, file: fileName }, `Cache item updated: ${fileName}`);
+        } else {
+            // New item — append
+            arr.push(itemData);
+            logger.debug({ event: 'cache_insert_item', dir: dirPath, file: fileName }, `Cache item inserted: ${fileName}`);
+        }
+        // cachedAt intentionally not refreshed — let TTL tick naturally
+    }
+}
+
+/**
+ * Read all JSON files from a directory (parallelized + cached with TTL)
+ * v2.0.8: cache stores {data, cachedAt} for TTL-aware expiry
  */
 async function readJsonDirectory(dirPath) {
-    // Check cache first
+    // Check cache first — serve if fresh (within TTL)
     if (directoryCache.has(dirPath)) {
-        return directoryCache.get(dirPath);
+        const entry = directoryCache.get(dirPath);
+        if (Date.now() - entry.cachedAt < CACHE_TTL_MS) {
+            return entry.data;
+        }
+        // Expired — fall through to re-read
+        directoryCache.delete(dirPath);
     }
 
     try {
@@ -241,8 +284,8 @@ async function readJsonDirectory(dirPath) {
 
         const result = items.filter(Boolean);
         
-        // Cache the result
-        directoryCache.set(dirPath, result);
+        // Cache the result with timestamp
+        directoryCache.set(dirPath, { data: result, cachedAt: Date.now() });
         
         return result;
     } catch (error) {
@@ -456,17 +499,21 @@ async function handleFileChange(action, filePath) {
     const entityType = parts[0]; // tasks, agents, humans, queue
     const fileName = parts[parts.length - 1];
 
-    // Invalidate cache for this directory (v1.13.0 perf fix)
-    invalidateCache(entityType);
-
     let data = null;
     if (action !== 'deleted') {
         try {
             const content = await fs.readFile(filePath, 'utf-8');
             data = JSON.parse(content);
         } catch (e) {
-            // File might be partially written
+            // File might be partially written — fall back to full cache bust
+            invalidateCache(entityType);
         }
+    }
+
+    // Surgical cache update (v2.0.8): update single item instead of nuking full cache
+    // Falls back to full invalidation if data couldn't be parsed (handled above)
+    if (data !== null || action === 'deleted') {
+        updateCacheItem(entityType, fileName, data, action);
     }
 
     // Broadcast to WebSocket clients

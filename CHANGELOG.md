@@ -5,6 +5,22 @@ Format: [version] — date | what changed | PR
 
 ---
 
+## [2.0.8] — 2026-04-03 | Performance: Surgical Cache Updates for /api/tasks
+
+**PR #141-fix**
+
+### Fixed
+- `/api/tasks` slow response (6781ms) caused by full cache invalidation on every file write
+- Previously: any file change nuked the entire in-memory cache, forcing a full disk re-read of all task JSON files
+- Now: surgical O(1) cache updates — individual items added/updated/removed in-place, no full re-read
+
+### Changed
+- `invalidateCache()` now only called on parse errors (fallback path)
+- New `updateCacheItem(dirPath, fileName, data, action)` handles add/update/delete atomically
+- Cache entries now use `{data, cachedAt}` shape with a **5-minute TTL** as a safety net for missed fs events
+
+---
+
 ## [2.0.3] — 2026-03-04 | Smart Panels — Chat, Reports, Schedules
 
 **PR #73 + PR #74**
