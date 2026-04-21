@@ -1,4 +1,0 @@
-2026-04-21T08:45:00Z [system] INIT: Mission Control initialized for Jarvis Control Center
-2026-04-21T08:45:01Z [system] REGISTERED: human-jt (JT, admin)
-2026-04-21T08:45:02Z [system] REGISTERED: agent-jarvis (JARVIS, lead)
-2026-04-21T08:45:03Z [system] CREATED: task-20260421-v1-streaming-tts (V1 — Stream Claude response → pipe sentences to TTS immediately)

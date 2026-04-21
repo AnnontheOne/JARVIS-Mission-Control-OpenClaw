@@ -1,0 +1,4 @@
+# Mission Control Initialized
+mode: production
+initialized_at: 2026-04-21T08:54:31Z
+initialized_by: init-mission-control.sh

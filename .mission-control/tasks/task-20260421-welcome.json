@@ -1,0 +1,16 @@
+{
+  "id": "task-20260421-welcome",
+  "title": "Welcome to Mission Control",
+  "description": "Your Mission Control is ready for production use!\n\nNext steps:\n1. Register your human operator: ./scripts/add-human.sh\n2. Register your agent: ./scripts/add-agent.sh\n3. Create your first task: ./scripts/create-task.sh\n\nSee CLAUDE.md for complete documentation.",
+  "status": "INBOX",
+  "priority": "high",
+  "assignee": null,
+  "created_by": "system",
+  "created_at": "2026-04-21T08:54:31Z",
+  "updated_at": "2026-04-21T08:54:31Z",
+  "labels": ["setup", "getting-started"],
+  "comments": [],
+  "deliverables": [],
+  "dependencies": [],
+  "blocked_by": []
+}
