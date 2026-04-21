@@ -2,10 +2,10 @@
 # This file defines the core system behavior
 
 project:
-  name: "JARVIS Mission Control"
+  name: "Jarvis Control Center - Mission Control"
   version: "1.0.0"
-  description: "Git-based AI agent orchestration system"
-  repository: "https://github.com/your-org/JARVIS-Mission-Control-OpenClaw"
+  description: "AI agent orchestration for the Jarvis modular AI assistant hub (voice, camera, 3D, image generation)"
+  repository: "https://github.com/AnnontheOne/JARVIS-Mission-Control-OpenClaw"
 
 # Workflow Configuration
 workflow:
@@ -143,6 +143,7 @@ agents:
 
   # Default lead agent
   lead_agent: "agent-jarvis"
+  owner: "human-jt"
 
 # Task Configuration
 tasks:

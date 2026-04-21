@@ -1,0 +1,16 @@
+{
+  "id": "human-jt",
+  "name": "JT",
+  "type": "human",
+  "role": "admin",
+  "designation": "Project Owner",
+  "email": "timothytate58@gmail.com",
+  "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=jt",
+  "status": "online",
+  "capabilities": ["all", "override", "approve"],
+  "channels": [],
+  "metadata": {
+    "clearance": "OMEGA",
+    "timezone": "UTC"
+  }
+}

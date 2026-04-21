@@ -1,0 +1,16 @@
+{
+  "id": "task-20260421-v1-streaming-tts",
+  "title": "V1 — Stream Claude response → pipe sentences to TTS immediately",
+  "description": "File: apps/server/src/routes/claude.routes.ts line 437+\n\nThe /api/claude/message endpoint streams Claude output and pipes complete sentences to TTS via speakAndEmit() as they arrive, rather than waiting for the full response. This eliminates perceived latency on voice responses — the user hears the first sentence while Claude is still generating the rest.\n\nKey mechanics already scaffolded:\n- extractSentences() splits on . ! ? boundaries with 8-char minimum\n- AbortController (V5) cancels in-flight stream on barge-in (jarvis:user_speaking)\n- Agentic loop (V9b) re-enters for tool calls\n- jarvis:chime fires before Claude call (V9)\n\nRemaining / validation work:\n- Confirm sentence extraction handles all edge cases (ellipses, abbreviations, code blocks)\n- Verify barge-in abort correctly drains the TTS queue and resets speechSequence\n- Ensure speakAndEmit errors (TTS failures) don't stall the stream loop\n- Validate seq numbers stay monotonic across a full multi-sentence response\n- End-to-end latency test: time from user speech → first audio chunk",
+  "status": "INBOX",
+  "priority": "high",
+  "assignee": null,
+  "created_by": "agent-jarvis",
+  "created_at": "2026-04-21T08:45:00Z",
+  "updated_at": "2026-04-21T08:45:00Z",
+  "labels": ["feature", "voice"],
+  "comments": [],
+  "deliverables": [],
+  "dependencies": [],
+  "blocked_by": []
+}

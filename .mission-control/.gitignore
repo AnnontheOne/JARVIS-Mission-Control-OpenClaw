@@ -1,34 +1,13 @@
 # ====================================
-# LOCAL DATA - Never commit to git
+# LIVE INSTANCE — data is committed
+# (Template gitignore overridden for JT's Jarvis fork)
 # ====================================
 
-# Runtime data (instance-specific)
-agents/*.json
-!agents/.gitkeep
-
-tasks/*.json
-!tasks/.gitkeep
-
-resources/*.json
-!resources/.gitkeep
-
-queue/*.json
-!queue/.gitkeep
-
-humans/*.json
-!humans/.gitkeep
-
-# Sensitive data
+# Sensitive data — never commit
 credentials/
 costs/
 
-# Runtime logs
-logs/*.log
-logs/*.json
-!logs/.gitkeep
-
-# Local config (each instance has its own)
-config.yaml
+# Local-only overrides
 config.local.yaml
 
 # Session/runtime files
